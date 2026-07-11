@@ -395,11 +395,12 @@ var invincibleTime = 0;
 var puddingEnergy = 0;
 var laserTime = 0;
 var boss = null;
-var bossHp = 3000;
-var bossMaxHp = 3000;
+var bossHp = 15000;
+var bossMaxHp = 15000;
 var bossMoveDir = 1;
 var baseBossW = 0;
 var bossSpin = 0;
+var companion = null;
 var SUPABASE_URL = 'https://ufjojhraqyzqqzlkokwd.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_ha-q_6WBEngyBT3dOLMJQQ_EZsVSGI6';
 var supabaseClient = null;
@@ -503,6 +504,7 @@ window.startGame = function() {
   invincibleTime = 0;
   puddingEnergy = 0;
   laserTime = 0;
+  companion = null;
   document.getElementById('scoreVal').textContent = '0';
   document.getElementById('levelVal').textContent = '1';
   document.getElementById('timeVal').textContent = '30';
@@ -617,6 +619,7 @@ var mintTexture  = textureLoader.load('item_mint.png');
 var ccTexture    = textureLoader.load('cc.png');
 var purinTexture = textureLoader.load('purin.png');
 var mimiTexture  = textureLoader.load('mimi01.png');
+var mimi02Texture = textureLoader.load('mimi02.png');
 var heartCanvas = document.createElement('canvas');
 heartCanvas.width = 64; heartCanvas.height = 64;
 var hCtx = heartCanvas.getContext('2d');
@@ -656,7 +659,7 @@ function shoot() {
       var mesh = new THREE.Mesh(laserGeo, laserMat);
       mesh.position.set(player.position.x, player.position.y + 80, 0);
       scene.add(mesh);
-      bullets.push({ mesh: mesh, vy: 25, isLaser: true });
+      bullets.push({ mesh: mesh, vy: 25, isLaser: true, isCompanion: false });
     }
   } else {
     if (frameCount - lastShotFrame < 35) return; 
@@ -669,7 +672,7 @@ function shoot() {
       var mesh = new THREE.Mesh(bulletGeo, mat);
       mesh.position.set(player.position.x + ox, player.position.y + 40, 0);
       scene.add(mesh);
-      bullets.push({ mesh: mesh, vy: 14 + level * 0.4, isLaser: false });
+      bullets.push({ mesh: mesh, vy: 14 + level * 0.4, isLaser: false, isCompanion: false });
     });
   }
 }
@@ -691,11 +694,12 @@ function updateBullets() {
   for (var i = bullets.length-1; i >= 0; i--) {
     var b = bullets[i];
     b.mesh.position.y += b.vy;
-    if (!b.isLaser) {
+    if (b.vx) b.mesh.position.x += b.vx;
+    if (!b.isLaser && !b.isCompanion) {
       b.mesh.rotation.y += 0.2;
       b.mesh.rotation.x += 0.1;
     }
-    if (b.mesh.position.y > H()/2 + 80) {
+    if (b.mesh.position.y > H()/2 + 80 || b.mesh.position.y < -H()/2 - 80 || b.mesh.position.x > W()/2 + 80 || b.mesh.position.x < -W()/2 - 80) {
       scene.remove(b.mesh);
       bullets.splice(i, 1);
     }
@@ -897,7 +901,7 @@ function checkCollisions() {
           bullets.splice(bi, 1);
           hit = true;
         }
-        e.hp -= b.isLaser ? 30 : 10;
+        e.hp -= b.isLaser ? 30 : (b.isCompanion ? 20 : 10);
         e.mesh.material.emissiveIntensity = 4;
         setTimeout(() => { if (e.mesh.material) e.mesh.material.emissiveIntensity = 1.2; }, 80);
         if (e.hp <= 0) {
@@ -925,7 +929,7 @@ function checkCollisions() {
           scene.remove(b.mesh);
           bullets.splice(bi, 1);
         }
-        bossHp -= b.isLaser ? 30 : 10;
+        bossHp -= b.isLaser ? 30 : (b.isCompanion ? 20 : 10);
         var bossRatio = Math.max(0, bossHp / bossMaxHp) * 100;
         document.getElementById('bossLifeBar').style.width = bossRatio + '%';
         boss.material.color.set(0xff5555);
@@ -940,6 +944,17 @@ function checkCollisions() {
           scene.remove(boss);
           boss = null;
           document.getElementById('bossHUD').style.display = 'none';
+          
+          var cmat = new THREE.SpriteMaterial({ map: mimi02Texture, transparent: true });
+          companion = new THREE.Sprite(cmat);
+          if (mimi02Texture.image && mimi02Texture.image.width > 0) {
+            companion.scale.set(60 * (mimi02Texture.image.width / mimi02Texture.image.height), 60, 1);
+          } else {
+            companion.scale.set(60, 60, 1);
+          }
+          companion.position.set(player.position.x + 60, player.position.y, 1);
+          scene.add(companion);
+          
           level++;
           stageTime = 30.0;
           scoreMultiplier = 1 + (level - 1) * 0.2;
@@ -1079,6 +1094,7 @@ function clearScene() {
   [...items].forEach(it => scene.remove(it.sprite));
   items.length = 0;
   if (boss) { scene.remove(boss); boss = null; }
+  if (companion) { scene.remove(companion); companion = null; }
   document.getElementById('bossHUD').style.display = 'none';
   multiShot = 1; speedBoost = 1.0;
   multiShotTimer = 0; speedTimer = 0;
@@ -1131,8 +1147,8 @@ function gameLoop(t) {
       if (level === 1) {
         clearScene();
         gameState = 'boss_intro';
-        bossHp = 3000;
-        bossMaxHp = 3000;
+        bossHp = 15000;
+        bossMaxHp = 15000;
         var mat = new THREE.SpriteMaterial({ map: mimiTexture, transparent: true });
         boss = new THREE.Sprite(mat);
         baseBossW = W() / 1.5;
@@ -1221,6 +1237,41 @@ function gameLoop(t) {
     if ((keys['ArrowRight'] || keys['d']) && player.position.x < W()/2 - 40) player.position.x += spd;
     shoot();
     player.material.rotation = (keys['ArrowLeft'] ? -0.25 : keys['ArrowRight'] ? 0.25 : 0);
+    
+    if (companion) {
+      var targetX = player.position.x + 60;
+      var targetY = player.position.y + 10 + Math.sin(frameCount * 0.1) * 15;
+      companion.position.x += (targetX - companion.position.x) * 0.1;
+      companion.position.y += (targetY - companion.position.y) * 0.1;
+      
+      if (frameCount % 30 === 0) {
+         var mat = new THREE.SpriteMaterial({ map: heartTexture, transparent: true });
+         var sprite = new THREE.Sprite(mat);
+         sprite.scale.set(30, 30, 1);
+         sprite.position.set(companion.position.x, companion.position.y + 20, 0);
+         scene.add(sprite);
+         
+         var vx = 0;
+         var vy = 12;
+         var closest = null;
+         var minDist = 9999;
+         for(var i=0; i<enemies.length; i++) {
+            var dist = Math.sqrt((enemies[i].mesh.position.x - companion.position.x)**2 + (enemies[i].mesh.position.y - companion.position.y)**2);
+            if(dist < minDist && enemies[i].mesh.position.y > companion.position.y) {
+                minDist = dist;
+                closest = enemies[i];
+            }
+         }
+         if(closest) {
+            var dx = closest.mesh.position.x - companion.position.x;
+            var dy = closest.mesh.position.y - companion.position.y;
+            var d = Math.sqrt(dx*dx + dy*dy);
+            vx = (dx / d) * 12;
+            vy = (dy / d) * 12;
+         }
+         bullets.push({ mesh: sprite, vx: vx, vy: vy, isLaser: false, isCompanion: true });
+      }
+    }
   }
   updateBullets();
   updateEnemies();
