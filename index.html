@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>プリン星団を守れ！</title>
+<title>プリン星団を守れ！ver.0.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&display=swap" rel="stylesheet">
@@ -395,9 +395,10 @@ var invincibleTime = 0;
 var puddingEnergy = 0;
 var laserTime = 0;
 var boss = null;
-var bossHp = 5000;
-var bossMaxHp = 5000;
+var bossHp = 15000;
+var bossMaxHp = 15000;
 var bossMoveDir = 1;
+var baseBossW = 0;
 var SUPABASE_URL = 'https://ufjojhraqyzqqzlkokwd.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_ha-q_6WBEngyBT3dOLMJQQ_EZsVSGI6';
 var supabaseClient = null;
@@ -671,6 +672,20 @@ function shoot() {
     });
   }
 }
+function spawnEnemyBullet(x, y) {
+  var mesh = new THREE.Mesh(enemyBulletGeo, enemyBulletMat);
+  mesh.position.set(x, y - 20, 0);
+  scene.add(mesh);
+  var vx = 0;
+  var speed = 5 + level * 0.5;
+  if (player && Math.random() < 0.4) {
+     var dx = player.position.x - x;
+     var dy = player.position.y - y;
+     var dist = Math.sqrt(dx*dx + dy*dy);
+     vx = (dx / dist) * speed * 0.4;
+  }
+  enemyBullets.push({ mesh, vx: vx, vy: -speed });
+}
 function updateBullets() {
   for (var i = bullets.length-1; i >= 0; i--) {
     var b = bullets[i];
@@ -739,18 +754,7 @@ function updateEnemies() {
     e.mesh.rotation.y += e.ry;
     e.shootTimer--;
     if (e.shootTimer <= 0) {
-      var emesh = new THREE.Mesh(enemyBulletGeo, enemyBulletMat);
-      emesh.position.set(e.mesh.position.x, e.mesh.position.y - 20, 0);
-      scene.add(emesh);
-      var vx = 0;
-      var speed = 5 + level * 0.5;
-      if (player && Math.random() < 0.4) {
-         var dx = player.position.x - e.mesh.position.x;
-         var dy = player.position.y - e.mesh.position.y;
-         var dist = Math.sqrt(dx*dx + dy*dy);
-         vx = (dx / dist) * speed * 0.4;
-      }
-      enemyBullets.push({ mesh: emesh, vx: vx, vy: -speed });
+      spawnEnemyBullet(e.mesh.position.x, e.mesh.position.y);
       e.shootTimer = Math.floor(Math.random() * 100) + 60 - Math.min(level * 5, 40);
     }
     if (e.mesh.position.y < -H()/2 - e.size - 10) {
@@ -913,14 +917,13 @@ function checkCollisions() {
   if (gameState === 'boss' && boss) {
     for (var bi = bullets.length - 1; bi >= 0; bi--) {
       var b = bullets[bi];
-      var collisionDist = b.isLaser ? (H()/3)/2 + 20 : (H()/3)/2;
+      if (b.isLaser) continue; 
+      var collisionDist = boss.scale.x / 2;
       var dist = Math.sqrt((b.mesh.position.x - boss.position.x)**2 + (b.mesh.position.y - boss.position.y)**2);
       if (dist < collisionDist) {
-        if (!b.isLaser) {
-          scene.remove(b.mesh);
-          bullets.splice(bi, 1);
-        }
-        bossHp -= b.isLaser ? 5 : 1;
+        scene.remove(b.mesh);
+        bullets.splice(bi, 1);
+        bossHp -= 1;
         var bossRatio = Math.max(0, bossHp / bossMaxHp) * 100;
         document.getElementById('bossLifeBar').style.width = bossRatio + '%';
         boss.material.color.set(0xff5555);
@@ -1126,17 +1129,17 @@ function gameLoop(t) {
       if (level === 1) {
         clearScene();
         gameState = 'boss_intro';
-        bossHp = 5000;
-        bossMaxHp = 5000;
+        bossHp = 15000;
+        bossMaxHp = 15000;
         var mat = new THREE.SpriteMaterial({ map: mimiTexture, transparent: true });
         boss = new THREE.Sprite(mat);
-        var targetW = W() / 1.5;
+        baseBossW = W() / 1.5;
         if (mimiTexture.image && mimiTexture.image.width > 0 && mimiTexture.image.height > 0) {
-          boss.scale.set(targetW, targetW * (mimiTexture.image.height / mimiTexture.image.width), 1);
+          boss.scale.set(baseBossW, baseBossW * (mimiTexture.image.height / mimiTexture.image.width), 1);
         } else {
-          boss.scale.set(targetW, targetW, 1);
+          boss.scale.set(baseBossW, baseBossW, 1);
         }
-        boss.position.set(0, H()/2 - (targetW/2) - 40, 1);
+        boss.position.set(0, H()/2 - (baseBossW/2) - 40, 1);
         scene.add(boss);
         document.getElementById('msgBox').classList.remove('hidden');
         document.getElementById('msgText').innerHTML = 'ミミ<br>「我は永久に不滅なりぃぃぃーーーー」';
@@ -1154,39 +1157,27 @@ function gameLoop(t) {
     boss.position.x += bossMoveDir * (2 + level * 0.2);
     if (boss.position.x > W()/2 - 150) { boss.position.x = W()/2 - 150; bossMoveDir = -1; }
     if (boss.position.x < -W()/2 + 150) { boss.position.x = -W()/2 + 150; bossMoveDir = 1; }
-    
-    if (frameCount % 15 === 0) {
-      var targetAngle = -Math.PI / 2;
-      if (player) {
-         targetAngle = Math.atan2(player.position.y - boss.position.y, player.position.x - boss.position.x);
-      }
-      for (var i = -2; i <= 2; i++) {
-        var a = targetAngle + i * 0.25;
-        var s = 8;
-        var vx = Math.cos(a) * s;
-        var vy = Math.sin(a) * s;
-        var mat = new THREE.SpriteMaterial({ map: heartTexture, transparent: true });
-        var sprite = new THREE.Sprite(mat);
-        sprite.scale.set(40, 40, 1);
-        sprite.position.set(boss.position.x, boss.position.y - 50, 2);
-        scene.add(sprite);
-        enemyBullets.push({ mesh: sprite, vx: vx, vy: vy });
-      }
+    var pulse = 1.0 + Math.sin(frameCount * 0.05) * 0.5;
+    var currentW = baseBossW * pulse;
+    if (mimiTexture.image && mimiTexture.image.width > 0 && mimiTexture.image.height > 0) {
+      boss.scale.set(currentW, currentW * (mimiTexture.image.height / mimiTexture.image.width), 1);
+    } else {
+      boss.scale.set(currentW, currentW, 1);
     }
-    
-    if (frameCount % 60 === 0) {
-      for (var i = 0; i < 16; i++) {
-        var a = (Math.PI * 2 / 16) * i;
-        var s = 5;
-        var vx = Math.cos(a) * s;
-        var vy = Math.sin(a) * s;
-        var mat = new THREE.SpriteMaterial({ map: heartTexture, transparent: true });
-        var sprite = new THREE.Sprite(mat);
-        sprite.scale.set(40, 40, 1);
-        sprite.position.set(boss.position.x, boss.position.y, 2);
-        scene.add(sprite);
-        enemyBullets.push({ mesh: sprite, vx: vx, vy: vy });
+    if (frameCount % 30 === 0) {
+      var mat = new THREE.SpriteMaterial({ map: heartTexture, transparent: true });
+      var sprite = new THREE.Sprite(mat);
+      sprite.scale.set(40, 40, 1);
+      sprite.position.set(boss.position.x, boss.position.y - 50, 2);
+      scene.add(sprite);
+      var vx = 0;
+      if (player) {
+        var dx = player.position.x - boss.position.x;
+        var dy = player.position.y - boss.position.y;
+        var dist = Math.sqrt(dx*dx + dy*dy);
+        vx = (dx / dist) * 6;
       }
+      enemyBullets.push({ mesh: sprite, vx: vx, vy: -6 });
     }
   }
   if (laserTime > 0) {
