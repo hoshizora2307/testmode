@@ -379,8 +379,8 @@ var invincibleTime = 0;
 var puddingEnergy = 0;
 var laserTime = 0;
 var boss = null;
-var bossHp = 20;
-var bossMaxHp = 20;
+var bossHp = 50;
+var bossMaxHp = 50;
 var bossMoveDir = 1;
 var SUPABASE_URL = 'https://ufjojhraqyzqqzlkokwd.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_ha-q_6WBEngyBT3dOLMJQQ_EZsVSGI6';
@@ -596,8 +596,8 @@ var textureLoader = new THREE.TextureLoader();
 var starTexture  = textureLoader.load('star_2_open.png');
 var lemonTexture = textureLoader.load('item_lemon.png');
 var mintTexture  = textureLoader.load('item_mint.png');
-var ccTexture    = textureLoader.load('cc.jpg');
-var purinTexture = textureLoader.load('purin.jpg');
+var ccTexture    = textureLoader.load('cc.png');
+var purinTexture = textureLoader.load('purin.png');
 var mimiTexture  = textureLoader.load('mimi01.png');
 var heartCanvas = document.createElement('canvas');
 heartCanvas.width = 64; heartCanvas.height = 64;
@@ -760,8 +760,8 @@ function spawnItem() {
   }
   var mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
   var sprite = new THREE.Sprite(mat);
-  if (tex.image) {
-    sprite.scale.set(44, 44 * (tex.image.height / tex.image.width), 1);
+  if (tex.image && tex.image.width > 0) {
+    sprite.scale.set(44 * (tex.image.width / tex.image.height), 44, 1);
   } else {
     sprite.scale.set(44, 44, 1);
   }
@@ -793,17 +793,17 @@ function showItemGet(type) {
   if (type === 'cc') {
     label = '🍰 安曇野からの贈り物';
     effect = '全敵消滅！';
-    img = 'cc.jpg';
+    img = 'cc.png';
     colorClass = 'item-lemon'; 
   } else if (type === 'purin') {
     label = '🍮 信州濃厚プリン';
     effect = 'エネルギー上昇！';
-    img = 'purin.jpg';
+    img = 'purin.png';
     colorClass = 'item-mint'; 
   } else if (type === 'laser') {
     label = '🍮 プリンエネルギーMAX！';
     effect = '強烈なレーザービーム！';
-    img = 'purin.jpg';
+    img = 'purin.png';
     colorClass = 'item-lemon';
   } else if (type === 'multishot') {
     label = '🍋 AROMA LEMON';
@@ -900,7 +900,7 @@ function checkCollisions() {
   if (gameState === 'boss' && boss) {
     for (var bi = bullets.length - 1; bi >= 0; bi--) {
       var b = bullets[bi];
-      var collisionDist = b.isLaser ? 140 : 120;
+      var collisionDist = b.isLaser ? (H()/3)/2 + 20 : (H()/3)/2;
       var dist = Math.sqrt((b.mesh.position.x - boss.position.x)**2 + (b.mesh.position.y - boss.position.y)**2);
       if (dist < collisionDist) {
         if (!b.isLaser) {
@@ -1100,13 +1100,19 @@ function gameLoop(t) {
       if (level === 3) {
         clearScene();
         gameState = 'boss';
-        bossHp = 20;
+        bossHp = 50;
+        bossMaxHp = 50;
         document.getElementById('bossHUD').style.display = 'flex';
         document.getElementById('bossLifeBar').style.width = '100%';
         var mat = new THREE.SpriteMaterial({ map: mimiTexture, transparent: true });
         boss = new THREE.Sprite(mat);
-        boss.scale.set(250, 250, 1);
-        boss.position.set(0, H()/2 - 160, 1);
+        var targetH = H() / 3;
+        if (mimiTexture.image && mimiTexture.image.width > 0) {
+          boss.scale.set(targetH * (mimiTexture.image.width / mimiTexture.image.height), targetH, 1);
+        } else {
+          boss.scale.set(targetH, targetH, 1);
+        }
+        boss.position.set(0, H()/2 - targetH/2 - 40, 1);
         scene.add(boss);
       } else {
         level++;
