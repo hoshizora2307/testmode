@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>プリン星団を守れ！</title>
+<title>プリン星団を守れ！ベータver.0.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&display=swap" rel="stylesheet">
@@ -945,22 +945,9 @@ function checkCollisions() {
           boss = null;
           document.getElementById('bossHUD').style.display = 'none';
           
-          var cmat = new THREE.SpriteMaterial({ map: mimi02Texture, transparent: true });
-          companion = new THREE.Sprite(cmat);
-          if (mimi02Texture.image && mimi02Texture.image.width > 0) {
-            companion.scale.set(60 * (mimi02Texture.image.width / mimi02Texture.image.height), 60, 1);
-          } else {
-            companion.scale.set(60, 60, 1);
-          }
-          companion.position.set(player.position.x + 60, player.position.y, 1);
-          scene.add(companion);
-          
-          level++;
-          stageTime = 30.0;
-          scoreMultiplier = 1 + (level - 1) * 0.2;
-          document.getElementById('levelVal').textContent = level;
-          showLevelBanner();
-          gameState = 'playing';
+          gameState = 'boss_outro';
+          document.getElementById('msgBox').classList.remove('hidden');
+          document.getElementById('msgText').innerHTML = 'ミミ<br>「おぬしはとても強い！きっとアトラスの追跡も可能だろう。ミミもついて行ってやる！」';
         }
         break;
       }
@@ -1105,6 +1092,25 @@ function advanceMessage() {
     document.getElementById('bossHUD').style.display = 'flex';
     document.getElementById('bossLifeBar').style.width = '100%';
     gameState = 'boss';
+  } else if (gameState === 'boss_outro') {
+    document.getElementById('msgBox').classList.add('hidden');
+    var cmat = new THREE.SpriteMaterial({ map: mimi02Texture, transparent: true });
+    companion = new THREE.Sprite(cmat);
+    if (mimi02Texture.image && mimi02Texture.image.width > 0) {
+      companion.scale.set(80 * (mimi02Texture.image.width / mimi02Texture.image.height), 80, 1);
+    } else {
+      companion.scale.set(80, 80, 1);
+    }
+    if (player) {
+      companion.position.set(player.position.x + 80, player.position.y, 1);
+    }
+    scene.add(companion);
+    level++;
+    stageTime = 30.0;
+    scoreMultiplier = 1 + (level - 1) * 0.2;
+    document.getElementById('levelVal').textContent = level;
+    showLevelBanner();
+    gameState = 'playing';
   }
 }
 window.addEventListener('pointerdown', advanceMessage);
@@ -1119,11 +1125,11 @@ function gameLoop(t) {
   lastTime = t;
   frameCount++;
   drawBg(t * 0.001);
-  if (gameState !== 'playing' && gameState !== 'boss' && gameState !== 'boss_intro') {
+  if (gameState !== 'playing' && gameState !== 'boss' && gameState !== 'boss_intro' && gameState !== 'boss_outro') {
     renderer.render(scene, camera);
     return;
   }
-  if (gameState === 'boss_intro') {
+  if (gameState === 'boss_intro' || gameState === 'boss_outro') {
     renderer.render(scene, camera);
     return;
   }
@@ -1239,7 +1245,7 @@ function gameLoop(t) {
     player.material.rotation = (keys['ArrowLeft'] ? -0.25 : keys['ArrowRight'] ? 0.25 : 0);
     
     if (companion) {
-      var targetX = player.position.x + 60;
+      var targetX = player.position.x + 80;
       var targetY = player.position.y + 10 + Math.sin(frameCount * 0.1) * 15;
       companion.position.x += (targetX - companion.position.x) * 0.1;
       companion.position.y += (targetY - companion.position.y) * 0.1;
@@ -1285,7 +1291,7 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keys[e.key] = false; });
 function handleTouchMove(e) {
-  if (gameState === 'boss_intro') advanceMessage();
+  if (gameState === 'boss_intro' || gameState === 'boss_outro') advanceMessage();
   if ((gameState !== 'playing' && gameState !== 'boss') || !player) return;
   e.preventDefault(); 
   var touch = e.touches[0];
