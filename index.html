@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>プリン星団を守れ！ver.0.3</title>
+<title>プリン星団を守れ！</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&display=swap" rel="stylesheet">
@@ -395,10 +395,11 @@ var invincibleTime = 0;
 var puddingEnergy = 0;
 var laserTime = 0;
 var boss = null;
-var bossHp = 15000;
-var bossMaxHp = 15000;
+var bossHp = 2000;
+var bossMaxHp = 2000;
 var bossMoveDir = 1;
 var baseBossW = 0;
+var bossSpin = 0;
 var SUPABASE_URL = 'https://ufjojhraqyzqqzlkokwd.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_ha-q_6WBEngyBT3dOLMJQQ_EZsVSGI6';
 var supabaseClient = null;
@@ -1129,8 +1130,8 @@ function gameLoop(t) {
       if (level === 1) {
         clearScene();
         gameState = 'boss_intro';
-        bossHp = 15000;
-        bossMaxHp = 15000;
+        bossHp = 2000;
+        bossMaxHp = 2000;
         var mat = new THREE.SpriteMaterial({ map: mimiTexture, transparent: true });
         boss = new THREE.Sprite(mat);
         baseBossW = W() / 1.5;
@@ -1164,20 +1165,40 @@ function gameLoop(t) {
     } else {
       boss.scale.set(currentW, currentW, 1);
     }
-    if (frameCount % 30 === 0) {
-      var mat = new THREE.SpriteMaterial({ map: heartTexture, transparent: true });
-      var sprite = new THREE.Sprite(mat);
-      sprite.scale.set(40, 40, 1);
-      sprite.position.set(boss.position.x, boss.position.y - 50, 2);
-      scene.add(sprite);
-      var vx = 0;
-      if (player) {
-        var dx = player.position.x - boss.position.x;
-        var dy = player.position.y - boss.position.y;
-        var dist = Math.sqrt(dx*dx + dy*dy);
-        vx = (dx / dist) * 6;
+    
+    if (Math.random() < 0.005 && bossSpin === 0) {
+      bossSpin = Math.PI * 4;
+    }
+    if (bossSpin > 0) {
+      boss.material.rotation += 0.3;
+      bossSpin -= 0.3;
+      if (bossSpin <= 0) {
+        boss.material.rotation = 0;
+        bossSpin = 0;
       }
-      enemyBullets.push({ mesh: sprite, vx: vx, vy: -6 });
+    }
+    
+    var hpRatio = bossHp / bossMaxHp;
+    var attackInterval = Math.max(10, Math.floor(45 * hpRatio) + 15);
+    
+    if (frameCount % attackInterval === 0) {
+      var ways = Math.floor(7 - 5 * hpRatio); 
+      var baseAngle = -Math.PI / 2;
+      if (player) {
+         baseAngle = Math.atan2(player.position.y - boss.position.y, player.position.x - boss.position.x);
+      }
+      for (var i = 0; i < ways; i++) {
+         var angle = baseAngle + (i - (ways-1)/2) * 0.3;
+         var s = 6 + (1 - hpRatio) * 4;
+         var vx = Math.cos(angle) * s;
+         var vy = Math.sin(angle) * s;
+         var mat = new THREE.SpriteMaterial({ map: heartTexture, transparent: true });
+         var sprite = new THREE.Sprite(mat);
+         sprite.scale.set(40, 40, 1);
+         sprite.position.set(boss.position.x, boss.position.y - 50, 2);
+         scene.add(sprite);
+         enemyBullets.push({ mesh: sprite, vx: vx, vy: vy });
+      }
     }
   }
   if (laserTime > 0) {
