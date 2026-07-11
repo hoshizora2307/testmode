@@ -395,8 +395,8 @@ var invincibleTime = 0;
 var puddingEnergy = 0;
 var laserTime = 0;
 var boss = null;
-var bossHp = 50;
-var bossMaxHp = 50;
+var bossHp = 300;
+var bossMaxHp = 300;
 var bossMoveDir = 1;
 var SUPABASE_URL = 'https://ufjojhraqyzqqzlkokwd.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_ha-q_6WBEngyBT3dOLMJQQ_EZsVSGI6';
@@ -777,9 +777,9 @@ function spawnItem() {
   var mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
   var sprite = new THREE.Sprite(mat);
   if (tex.image && tex.image.width > 0) {
-    sprite.scale.set(44 * (tex.image.width / tex.image.height), 44, 1);
+    sprite.scale.set(95 * (tex.image.width / tex.image.height), 95, 1);
   } else {
-    sprite.scale.set(44, 44, 1);
+    sprite.scale.set(95, 95, 1);
   }
   sprite.position.set((Math.random() - 0.5) * (W() - 100), H()/2 + 30, 2);
   scene.add(sprite);
@@ -1129,8 +1129,8 @@ function gameLoop(t) {
       if (level === 1) {
         clearScene();
         gameState = 'boss_intro';
-        bossHp = 50;
-        bossMaxHp = 50;
+        bossHp = 300;
+        bossMaxHp = 300;
         var mat = new THREE.SpriteMaterial({ map: mimiTexture, transparent: true });
         boss = new THREE.Sprite(mat);
         var targetW = W() / 1.5;
@@ -1157,7 +1157,7 @@ function gameLoop(t) {
     boss.position.x += bossMoveDir * (2 + level * 0.2);
     if (boss.position.x > W()/2 - 150) { boss.position.x = W()/2 - 150; bossMoveDir = -1; }
     if (boss.position.x < -W()/2 + 150) { boss.position.x = -W()/2 + 150; bossMoveDir = 1; }
-    if (frameCount % 45 === 0) {
+    if (frameCount % 30 === 0) {
       var mat = new THREE.SpriteMaterial({ map: heartTexture, transparent: true });
       var sprite = new THREE.Sprite(mat);
       sprite.scale.set(40, 40, 1);
