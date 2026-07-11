@@ -246,18 +246,18 @@
   @keyframes overlayFade { 0% { opacity: 0; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
   .item-popup {
     display: flex; flex-direction: column; align-items: center;
-    background: rgba(5,5,20,0.88); border-radius: 22px; padding: 24px 36px 20px;
-    box-shadow: 0 0 60px rgba(255,255,255,0.15); animation: popupZoom 2.2s forwards;
+    background: rgba(5,5,20,0.88); border-radius: 16px; padding: 12px 20px 10px;
+    box-shadow: 0 0 40px rgba(255,255,255,0.15); animation: popupZoom 2.2s forwards;
   }
-  @keyframes popupZoom { 0% { transform: scale(0.3) rotate(-25deg); } 20% { transform: scale(1.18) rotate(8deg); } 35% { transform: scale(0.97) rotate(-3deg); } 50% { transform: scale(1.04) rotate(1deg); } 65% { transform: scale(1) rotate(0deg); } 85% { transform: scale(1) rotate(0deg); } 100% { transform: scale(0.7) rotate(15deg); } }
+  @keyframes popupZoom { 0% { transform: scale(0.15) rotate(-25deg); } 20% { transform: scale(0.65) rotate(8deg); } 35% { transform: scale(0.55) rotate(-3deg); } 50% { transform: scale(0.6) rotate(1deg); } 65% { transform: scale(0.55) rotate(0deg); } 85% { transform: scale(0.55) rotate(0deg); } 100% { transform: scale(0.3) rotate(15deg); } }
   .item-lemon { border: 2px solid rgba(255,230,80,0.7); }
   .item-mint  { border: 2px solid rgba(100,255,180,0.7); }
-  .item-popup-img { height: 160px; width: auto; filter: drop-shadow(0 0 20px rgba(255,255,255,0.4)); animation: imgSpin 2.2s forwards; }
+  .item-popup-img { height: 80px; width: auto; filter: drop-shadow(0 0 20px rgba(255,255,255,0.4)); animation: imgSpin 2.2s forwards; }
   @keyframes imgSpin { 0% { transform: rotate(-30deg) scale(0.4); } 30% { transform: rotate(15deg) scale(1.15); } 55% { transform: rotate(-5deg) scale(1); } 80% { transform: rotate(0deg) scale(1); } 100%{ transform: rotate(20deg) scale(0.5); } }
-  .item-popup-label { font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; margin-top: 10px; }
+  .item-popup-label { font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; margin-top: 6px; }
   .item-lemon .item-popup-label { color: #ffe840; text-shadow: 0 0 12px #ffe840; }
   .item-mint  .item-popup-label { color: #64ffb4; text-shadow: 0 0 12px #64ffb4; }
-  .item-popup-effect { font-size: 1.8rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.8); margin: 6px 0 4px; letter-spacing: 2px; }
+  .item-popup-effect { font-size: 1.3rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.8); margin: 4px 0 2px; letter-spacing: 1px; }
   .damage-text {
     position: fixed; z-index: 100; pointer-events: none;
     font-size: 1.6rem; font-weight: 900;
@@ -1106,13 +1106,13 @@ function gameLoop(t) {
         document.getElementById('bossLifeBar').style.width = '100%';
         var mat = new THREE.SpriteMaterial({ map: mimiTexture, transparent: true });
         boss = new THREE.Sprite(mat);
-        var targetH = H() / 3;
-        if (mimiTexture.image && mimiTexture.image.width > 0) {
-          boss.scale.set(targetH * (mimiTexture.image.width / mimiTexture.image.height), targetH, 1);
+        var targetW = W() / 1.5;
+        if (mimiTexture.image && mimiTexture.image.width > 0 && mimiTexture.image.height > 0) {
+          boss.scale.set(targetW, targetW * (mimiTexture.image.height / mimiTexture.image.width), 1);
         } else {
-          boss.scale.set(targetH, targetH, 1);
+          boss.scale.set(targetW, targetW, 1);
         }
-        boss.position.set(0, H()/2 - targetH/2 - 40, 1);
+        boss.position.set(0, H()/2 - (targetW/2) - 40, 1);
         scene.add(boss);
       } else {
         level++;
