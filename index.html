@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>プリン星団を守れ！</title>
+<title>プリン星団を守れ！ver.0.51</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&display=swap" rel="stylesheet">
@@ -395,8 +395,8 @@ var invincibleTime = 0;
 var puddingEnergy = 0;
 var laserTime = 0;
 var boss = null;
-var bossHp = 2000;
-var bossMaxHp = 2000;
+var bossHp = 15000;
+var bossMaxHp = 15000;
 var bossMoveDir = 1;
 var baseBossW = 0;
 var bossSpin = 0;
@@ -918,13 +918,14 @@ function checkCollisions() {
   if (gameState === 'boss' && boss) {
     for (var bi = bullets.length - 1; bi >= 0; bi--) {
       var b = bullets[bi];
-      if (b.isLaser) continue; 
-      var collisionDist = boss.scale.x / 2;
+      var collisionDist = b.isLaser ? boss.scale.x / 2 + 20 : boss.scale.x / 2;
       var dist = Math.sqrt((b.mesh.position.x - boss.position.x)**2 + (b.mesh.position.y - boss.position.y)**2);
       if (dist < collisionDist) {
-        scene.remove(b.mesh);
-        bullets.splice(bi, 1);
-        bossHp -= 1;
+        if (!b.isLaser) {
+          scene.remove(b.mesh);
+          bullets.splice(bi, 1);
+        }
+        bossHp -= b.isLaser ? 25 : 1;
         var bossRatio = Math.max(0, bossHp / bossMaxHp) * 100;
         document.getElementById('bossLifeBar').style.width = bossRatio + '%';
         boss.material.color.set(0xff5555);
@@ -1130,8 +1131,8 @@ function gameLoop(t) {
       if (level === 1) {
         clearScene();
         gameState = 'boss_intro';
-        bossHp = 2000;
-        bossMaxHp = 2000;
+        bossHp = 15000;
+        bossMaxHp = 15000;
         var mat = new THREE.SpriteMaterial({ map: mimiTexture, transparent: true });
         boss = new THREE.Sprite(mat);
         baseBossW = W() / 1.5;
